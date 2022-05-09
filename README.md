@@ -1,5 +1,6 @@
 # rs-crypto-com-exchange
 This is an unofficial websocket library for the crypto com exchange websocket api https://exchange-docs.crypto.com/spot/index.html#websocket-root-endpoints
+Library doc is available at https://docs.rs/crypto-com-exchange/latest/crypto_com_exchange/
 
 Basically, there two kind of clients: `MarketClient` and `UserClient`. The `MarketClient` is used to get global market information for example
 for monitoring. The `UserClient` needs authentication and it is used for create orders, check balance and all things related to the user.

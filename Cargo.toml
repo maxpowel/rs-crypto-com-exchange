@@ -3,12 +3,13 @@ name = "crypto-com-exchange"
 version = "1.0.0"
 edition = "2021"
 license-file = "LICENSE"
+license = "Apache-2.0"
 description = "Websocket library for crypto com exchange https://exchange-docs.crypto.com/spot/index.html#websocket-root-endpoints"
 
 
 homepage = "https://github.com/maxpowel/rs-crypto-com-exchange"
 repository = "https://github.com/maxpowel/rs-crypto-com-exchange"
-documentation = "https://github.com/maxpowel/rs-crypto-com-exchange"
+documentation = "https://docs.rs/crypto-com-exchange/latest/crypto_com_exchange/"
 readme = "README.md"
 keywords = ["websocket", "crypto", "api", "exchange"]
 categories = ["api-bindings", "asynchronous", "web-programming::websocket"]
