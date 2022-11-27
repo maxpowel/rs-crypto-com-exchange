@@ -1,4 +1,5 @@
 use serde::{Deserialize};
+use serde_aux::prelude::deserialize_number_from_string;
 
 // Main container of a candlestick
 #[derive(Deserialize, Debug)]
@@ -25,9 +26,6 @@ pub struct CandlestickResult {
     /// 1M : one month
     pub interval: String,
 
-    /// Undocumented value
-    pub depth: u64,
-
     /// Actual candlestick information
     pub data: Vec<Candlestick>
 }
@@ -37,24 +35,28 @@ pub struct CandlestickResult {
 pub struct Candlestick {
 
     /// Open price
-    #[serde(rename = "o")]
+    #[serde(rename = "o", deserialize_with = "deserialize_number_from_string")]
     pub open: f32,
     
     /// Close price
-    #[serde(rename = "c")]
+    #[serde(rename = "c", deserialize_with = "deserialize_number_from_string")]
     pub close: f32,
 
     /// Highest price
-    #[serde(rename = "h")]
+    #[serde(rename = "h", deserialize_with = "deserialize_number_from_string")]
     pub high: f32,
 
     /// Lowest price
-    #[serde(rename = "l")]
+    #[serde(rename = "l", deserialize_with = "deserialize_number_from_string")]
     pub low: f32,
 
     /// Volume
-    #[serde(rename = "v")]
+    #[serde(rename = "v", deserialize_with = "deserialize_number_from_string")]
     pub volume: f32,
+
+    /// Update time
+    #[serde(rename = "ut")]
+    pub update_time: u64,
 
     /// When the candlestick starts
     #[serde(rename = "t")]
@@ -76,20 +78,22 @@ mod tests {
             \"interval\": \"1m\",
             \"data\":[
               {
-                \"o\": 162.03,
-                \"c\": 162.04,
-                \"h\": 161.96,
-                \"l\": 161.98,
-                \"v\": 336.452694,
-                \"t\": 1589441241
+                \"o\": \"162.03\",
+                \"c\": \"162.04\",
+                \"h\": \"161.96\",
+                \"l\": \"161.98\",
+                \"v\": \"336.452694\",
+                \"t\": 1589443241,
+                \"ut\": 1589443242
               },
               {
-                \"o\": 163.03,
-                \"c\": 163.04,
-                \"h\": 162.96,
-                \"l\": 162.98,
-                \"v\": 336.452694,
-                \"t\": 1589443241
+                \"o\": \"163.03\",
+                \"c\": \"163.04\",
+                \"h\": \"162.96\",
+                \"l\": \"162.98\",
+                \"v\": \"336.452694\",
+                \"t\": 1589443241,
+                \"ut\": 1589443242
               }
               ]
           }";
@@ -98,7 +102,6 @@ mod tests {
         assert_eq!(candlestick_result.instrument_name, "ETH_CRO");
         assert_eq!(candlestick_result.subscription, "candlestick.1m.ETH_CRO");
         assert_eq!(candlestick_result.interval, "1m");
-        assert_eq!(candlestick_result.depth, 300);
         assert_eq!(candlestick_result.data.len(), 2);
 
         // The data
@@ -108,7 +111,8 @@ mod tests {
         assert_eq!(data.high, 161.96);
         assert_eq!(data.low, 161.98);
         assert_eq!(data.volume, 336.452694);
-        assert_eq!(data.start_time, 1589441241);
+        assert_eq!(data.start_time, 1589443241);
+        assert_eq!(data.update_time, 1589443242);
         
     }
 }

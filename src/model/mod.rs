@@ -9,7 +9,7 @@ mod balance;
 
 
 use serde::{Deserialize};
-pub use subscription_response_market::{MarketSubscribeResponse, MarketSubscribeResult};
+pub use subscription_response_market::MarketSubscribeResult;
 pub use subscription_response_user::{UserSubscribeResponse, UserSubscribeResult};
 pub use subscription::{Request, SubscribeParams};
 
@@ -33,7 +33,9 @@ pub enum MarketMessage {
 
     /// A response from a subscription request
     #[serde(rename = "subscribe")]
-    MarketSubscribeResponse(MarketSubscribeResponse),
+    MarketResponse{
+        result: MarketSubscribeResult
+    }
 }
 
 ///All kind of incoming user messages that the client receive and understand

@@ -1,7 +1,9 @@
 use tokio_tungstenite::{connect_async};
 use futures_util::{StreamExt};
+use crate::MarketSubscribeResult;
+
 use super::{reader::user_reader_task, reader::market_reader_task, writer::writter_task};
-use super::super::model::{Request, SubscribeParams, MarketSubscribeResponse, UserSubscribeResponse};
+use super::super::model::{Request, SubscribeParams, UserSubscribeResponse};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::time::{sleep, Duration};
 use sha2::Sha256;
@@ -22,7 +24,7 @@ pub struct MarketClient {
 
 
 impl MarketClient {
-    pub async fn new() -> Result<(MarketClient, flume::Receiver<MarketSubscribeResponse>), tokio_tungstenite::tungstenite::Error> {
+    pub async fn new() -> Result<(MarketClient, flume::Receiver<MarketSubscribeResult>), tokio_tungstenite::tungstenite::Error> {
 
 
         match connect_async("wss://stream.crypto.com/v2/market").await {
