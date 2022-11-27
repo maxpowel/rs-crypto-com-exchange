@@ -97,7 +97,7 @@ mod tests {
               }
               ]
           }";
-        //let json = "{\"instrument_name\":\"ETH_CRO\",\"subscription\":\"candlestick.5m.ETH_CRO\",\"channel\":\"candlestick\",\"depth\":300,\"interval\":\"5m\",\"data\":[{\"t\":1648065300000,\"o\":6962.37,\"h\":6988.77,\"l\":6951.97,\"c\":6962.33,\"v\":0.00662}]}";
+
         let candlestick_result = from_str::<CandlestickResult>(json).unwrap();
         assert_eq!(candlestick_result.instrument_name, "ETH_CRO");
         assert_eq!(candlestick_result.subscription, "candlestick.1m.ETH_CRO");
