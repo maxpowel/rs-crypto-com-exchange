@@ -14,8 +14,6 @@ pub async fn market_reader_task(
         match message {
             Message::Text(text) => {
                 debug!("{}", text);
-                println!("{}", text);
-                println!("MESASDFE NUEVO");
                 match serde_json::from_str::<MarketMessage>(&text) {
                     Ok(msg) => {
                         println!("COSAAAA {:?}", msg);
