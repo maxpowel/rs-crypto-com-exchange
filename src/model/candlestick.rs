@@ -1,5 +1,8 @@
 use serde::{Deserialize};
 use serde_aux::prelude::deserialize_number_from_string;
+use chrono::serde::ts_milliseconds;
+use chrono::DateTime;
+use chrono::Utc;
 
 // Main container of a candlestick
 #[derive(Deserialize, Debug)]
@@ -55,12 +58,12 @@ pub struct Candlestick {
     pub volume: f32,
 
     /// Update time
-    #[serde(rename = "ut")]
-    pub update_time: u64,
+    #[serde(rename = "ut", with = "ts_milliseconds")]
+    pub update_time: DateTime<Utc>,
 
     /// When the candlestick starts
-    #[serde(rename = "t")]
-    pub start_time: u64
+    #[serde(rename = "t", with = "ts_milliseconds")]
+    pub start_time: DateTime<Utc>
 }
 
 #[cfg(test)]
@@ -83,8 +86,8 @@ mod tests {
                 \"h\": \"161.96\",
                 \"l\": \"161.98\",
                 \"v\": \"336.452694\",
-                \"t\": 1589443241,
-                \"ut\": 1589443242
+                \"t\": 1589443241000,
+                \"ut\": 1589443242000
               },
               {
                 \"o\": \"163.03\",
@@ -92,8 +95,8 @@ mod tests {
                 \"h\": \"162.96\",
                 \"l\": \"162.98\",
                 \"v\": \"336.452694\",
-                \"t\": 1589443241,
-                \"ut\": 1589443242
+                \"t\": 1589443241000,
+                \"ut\": 1589443242000
               }
               ]
           }";
@@ -111,8 +114,8 @@ mod tests {
         assert_eq!(data.high, 161.96);
         assert_eq!(data.low, 161.98);
         assert_eq!(data.volume, 336.452694);
-        assert_eq!(data.start_time, 1589443241);
-        assert_eq!(data.update_time, 1589443242);
+        assert_eq!(data.start_time, DateTime::parse_from_rfc3339("2020-05-14T08:00:41+00:00").unwrap());
+        assert_eq!(data.update_time, DateTime::parse_from_rfc3339("2020-05-14T08:00:42+00:00").unwrap());
         
     }
 }
