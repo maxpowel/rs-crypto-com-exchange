@@ -14,7 +14,6 @@ pub async fn writter_task(
                     Ok(message) => {
                         let text = serde_json::to_string(&message).unwrap();
                         debug!("{}", text);
-                        println!("CAGAO ENVI {text}");
                         writter.send(Message::text(text)).await.unwrap();
                     },
                     Err(err) => {

@@ -16,14 +16,13 @@ pub async fn market_reader_task(
                 debug!("{}", text);
                 match serde_json::from_str::<MarketMessage>(&text) {
                     Ok(msg) => {
-                        println!("COSAAAA {:?}", msg);
                         match msg {
                             MarketMessage::HeartbeatRequest{id} => {                   
-                                println!("HEART");
+                                debug!("heartbeat received");
                                 to_writer.send_async(Request::HeartbeatResponse{id}).await.unwrap();
                             },
                             MarketMessage::MarketResponse{result} => {
-                                println!("OTRO");
+                                debug!("Message received: {:?}", result);
                                 to_client.send_async(result).await.unwrap();
                             }
                         }
