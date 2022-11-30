@@ -10,35 +10,42 @@ pub async fn market_reader_task(
     to_client: flume::Sender<MarketSubscribeResult>
 ) {
     reader.for_each(|message| async {
-        let message = message.unwrap();
         match message {
-            Message::Text(text) => {
-                debug!("{}", text);
-                match serde_json::from_str::<MarketMessage>(&text) {
-                    Ok(msg) => {
-                        match msg {
-                            MarketMessage::HeartbeatRequest{id} => {                   
-                                debug!("heartbeat received");
-                                to_writer.send_async(Request::HeartbeatResponse{id}).await.unwrap();
-                            },
-                            MarketMessage::MarketResponse{result} => {
-                                debug!("Message received: {:?}", result);
-                                to_client.send_async(result).await.unwrap();
+            Ok(message) => {
+                match message {
+                    Message::Text(text) => {
+                        debug!("{}", text);
+                        match serde_json::from_str::<MarketMessage>(&text) {
+                            Ok(msg) => {
+                                match msg {
+                                    MarketMessage::HeartbeatRequest{id} => {                   
+                                        debug!("heartbeat received");
+                                        to_writer.send_async(Request::HeartbeatResponse{id}).await.unwrap();
+                                    },
+                                    MarketMessage::MarketResponse{result} => {
+                                        debug!("Message received: {:?}", result);
+                                        to_client.send_async(result).await.unwrap();
+                                    }
+                                }
+                            }
+                            Err(err) => {
+                                error!("Error when parsing JSON:\n{}\n{}", text, err);
                             }
                         }
+                    },
+                    Message::Ping(message) => {
+                        debug!("PING RECEIVED {:?}", message);
+                    },
+                    message => {
+                        error!("Unexpected message {:?}", message);
                     }
-                    Err(err) => {
-                        error!("Error when parsing JSON:\n{}\n{}", text, err);
-                    }
-                }
+                }    
             },
-            Message::Ping(message) => {
-                debug!("PING RECEIVED {:?}", message);
-            },
-            message => {
-                error!("Unexpected message {:?}", message);
+            Err(error) => {
+                error!("{:?}", error);
             }
-        }    
+        }
+        
     }).await;
     
 }
