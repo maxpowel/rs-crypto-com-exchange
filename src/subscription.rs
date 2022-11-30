@@ -41,19 +41,6 @@ pub enum Request {
         /// Millis since epoc
         nonce: u128
     },
-
-    /// Subscription request
-    #[serde(rename = "subscribe")]
-    SignedSubscribe {
-        /// The exchange will response using this id, ideally it is unique
-        id: u64,
-        /// The actual subscription parameters
-        params: SubscribeParams,
-        /// Millis since epoch
-        nonce: u128,
-
-        sig: String,
-    },
     
 }
 

@@ -1,10 +1,43 @@
 use serde::{Deserialize};
-use crate::model::{TradeResult, CandlestickResult, TickerResult, BookResult};
+use crate::model::{TradeResult, CandlestickResult, TickerResult, BookResult, BalanceResult};
+
+///All kind of incoming market messages that the client receive and understand
+#[derive(Deserialize, Debug)]
+#[serde(tag = "method")]
+pub enum Message {
+    /// The exchange is asking for proof of life
+    #[serde(rename = "public/heartbeat")]
+    HeartbeatRequest{
+        /// The same id should be used in the response
+        id: u64
+    },
+
+    /// Auth response
+    #[serde(rename = "public/auth")]
+    AuthResponse {
+        /// The id we provided in the auth request
+        id: u64,
+        /// Auth status code. 0 means ok
+        code: u64
+    },
+
+    /// A response from a subscription request
+    #[serde(rename = "subscribe")]
+    SubscriptionResponse{
+        result: Option<SubscribeResult>,
+        id: i32,
+        code: u64,
+        channel: Option<String>,
+        message: Option<String>
+    }
+}
 
 /// The result of a subscribed event. Identified by the field 'channel'
 #[derive(Deserialize, Debug)]
 #[serde(tag = "channel")]
-pub enum MarketSubscribeResult {
+pub enum SubscribeResult {
+
+    //// MARKET ////
 
     /// Trade subscription result
     #[serde(rename = "trade")]
@@ -22,6 +55,11 @@ pub enum MarketSubscribeResult {
     #[serde(rename = "book")]
     BookResult(BookResult),
 
+    //// USER ////
+
+    /// Trade subscription result
+    #[serde(rename = "user.balance")]
+    BalanceResult(BalanceResult),
 }
 
 
@@ -36,9 +74,9 @@ mod tests {
         let json_sub = "{
             \"channel\": \"trade\", \"instrument_name\": \"instrument\", \"subscription\": \"sub\", \"data\": []
           }";
-        let res = from_str::<MarketSubscribeResult>(json_sub).unwrap();
+        let res = from_str::<SubscribeResult>(json_sub).unwrap();
         match res {
-            MarketSubscribeResult::TradeResult(result) => {
+            SubscribeResult::TradeResult(result) => {
                 assert_eq!(result.instrument_name, "instrument");
                 assert_eq!(result.subscription, "sub");
                 
@@ -56,9 +94,9 @@ mod tests {
             \"channel\": \"candlestick\", \"instrument_name\": \"instrument\", \"subscription\": \"sub\", \"interval\": \"5m\", \"data\": []
           }";
 
-        let res = from_str::<MarketSubscribeResult>(json_sub).unwrap();
+        let res = from_str::<SubscribeResult>(json_sub).unwrap();
         match res {
-            MarketSubscribeResult::CandlestickResult(result) => {
+            SubscribeResult::CandlestickResult(result) => {
                 assert_eq!(result.instrument_name, "instrument");
                 assert_eq!(result.subscription, "sub");
                 assert_eq!(result.interval, "5m");
@@ -77,9 +115,9 @@ mod tests {
             ]
           }";
 
-        let res = from_str::<MarketSubscribeResult>(json_sub).unwrap();
+        let res = from_str::<SubscribeResult>(json_sub).unwrap();
         match res {
-            MarketSubscribeResult::CandlestickResult(result) => {
+            SubscribeResult::CandlestickResult(result) => {
                 assert_eq!(result.instrument_name, "instrument");
                 assert_eq!(result.subscription, "sub");
                 assert_eq!(result.interval, "5m");
@@ -95,9 +133,9 @@ mod tests {
         let json_sub = "{
             \"channel\": \"ticker\", \"instrument_name\": \"instrument\", \"subscription\": \"sub\", \"data\": []
           }";
-        let res = from_str::<MarketSubscribeResult>(json_sub).unwrap();
+        let res = from_str::<SubscribeResult>(json_sub).unwrap();
         match res {
-            MarketSubscribeResult::TickerResult(result) => {
+            SubscribeResult::TickerResult(result) => {
                 assert_eq!(result.instrument_name, "instrument");
                 assert_eq!(result.subscription, "sub");
             },
@@ -112,10 +150,10 @@ mod tests {
         let json_sub = "{
             \"channel\": \"book\", \"instrument_name\": \"instrument\", \"subscription\": \"sub\", \"depth\": 123, \"data\": []
           }";
-        let res = from_str::<MarketSubscribeResult>(json_sub).unwrap();
+        let res = from_str::<SubscribeResult>(json_sub).unwrap();
         
         match res {
-            MarketSubscribeResult::BookResult(result) => {
+            SubscribeResult::BookResult(result) => {
                 assert_eq!(result.instrument_name, "instrument");
                 assert_eq!(result.subscription, "sub");
                 assert_eq!(result.depth, 123);
