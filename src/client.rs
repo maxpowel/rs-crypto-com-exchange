@@ -20,11 +20,14 @@ use crate::subscription;
 type HmacSha256 = Hmac<Sha256>;
 
 
-pub struct CryptoTransport<Fut: Future<Output = ()> + Send + Sync + 'static> {
-    events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult>)-> Fut + Send + Sync>>,
+pub struct CryptoClient<Fut: Future<Output = ()> + Send + Sync + 'static, T> {
+    //events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult>, std::sync::Arc<flume::Sender<T>>)-> Fut + Send + Sync>>,
+    events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult>, T)-> Fut + Send + Sync>>,
     reader_join: Option<JoinHandle<Result<()>>>,
     writer: Option<Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>>,
-    message_id: u64
+    message_id: u64,
+    //sender: std::sync::Arc<flume::Sender<T>>
+    container: T
 }
 
 fn nonce() -> u128 {
@@ -32,14 +35,17 @@ fn nonce() -> u128 {
     start.duration_since(UNIX_EPOCH).unwrap().as_millis()
 }
 
-impl<Fut: Future<Output = ()>  + Send + Sync + 'static> CryptoTransport<Fut> {
+impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> CryptoClient<Fut, T> 
+   where T: Clone {
 
-    pub fn new(f: impl Fn(Result<message::SubscribeResult>)->Fut + Send + Sync + 'static) -> CryptoTransport<Fut> {
-        CryptoTransport {
+    //pub fn new(f: impl Fn(Result<message::SubscribeResult>, std::sync::Arc<flume::Sender<T>>)->Fut + Send + Sync + 'static, sender: std::sync::Arc<flume::Sender<T>>) -> CryptoTransport<Fut, T> {
+    pub fn new(f: impl Fn(Result<message::SubscribeResult>, T)->Fut + Send + Sync + 'static, container: T) -> CryptoClient<Fut, T> {
+        CryptoClient {
             events: Arc::new(Mutex::new(f)),
             reader_join: None,
             writer: None,
-            message_id: 1
+            message_id: 1,
+            container
         }
 
     }
@@ -76,6 +82,16 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static> CryptoTransport<Fut> {
         Ok(())
     }
 
+    pub async fn connect_market(&mut self) -> Result<()> {
+        self.connect("wss://stream.crypto.com/v2/market").await?;
+        Ok(())
+    }
+
+    pub async fn connect_user(&mut self) -> Result<()> {
+        self.connect("wss://stream.crypto.com/v2/user").await?;
+        Ok(())
+    }
+
     pub async fn connect(&mut self, uri: &str) -> Result<()> {
         info!("Connecting");
         let connection = connect_async(uri).await?;
@@ -87,11 +103,15 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static> CryptoTransport<Fut> {
         
         let events = Arc::clone(&self.events);
         
+        //let cosa = self.sender.clone();
+        let cosa = self.container.clone();
         let join = tokio::spawn(async move {
+            let top_inner_cosa = cosa.clone();
             let mut res: Result<(), anyhow::Error> = Ok(());
             info!("Listener ready");
             //let next = reader.next().await.unwrap();
             while let Some(next) = read.next().await {
+                let inner_cosa = top_inner_cosa.clone();
             //read.for_each(|next| async {
                 match next {
                     Ok(message) => {
@@ -113,9 +133,9 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static> CryptoTransport<Fut> {
                                             message::Message::SubscriptionResponse{result, id, code, channel, message} => {
                                                 if let Some(result) = result {
                                                     debug!("Message received: {:?}", result);
-                                                    e(Ok(result)).await;
+                                                    e(Ok(result), inner_cosa).await;
                                                 } else {
-                                                    e(Err(anyhow::anyhow!("Error \"{}\" ({code}) when subscribing to {} (msgid:{id})", message.unwrap_or("unknown".into()), channel.unwrap_or("unknown".into())))).await;
+                                                    e(Err(anyhow::anyhow!("Error \"{}\" ({code}) when subscribing to {} (msgid:{id})", message.unwrap_or("unknown".into()), channel.unwrap_or("unknown".into()))), inner_cosa).await;
                                                 }
                                                 
                                                 
@@ -140,22 +160,22 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static> CryptoTransport<Fut> {
                             Message::Close(frame) => {
                                 if let Some(frame) = frame {
                                     debug!("Close reason: {:?}", frame.reason);
-                                    e(Err(anyhow::anyhow!("Close reason: {:?}", frame.reason))).await;
+                                    e(Err(anyhow::anyhow!("Close reason: {:?}", frame.reason)), inner_cosa).await;
                                 } else {
                                     debug!("Close frame received without a reason");
-                                    e(Err(anyhow::anyhow!("Close frame received without a reason"))).await;
+                                    e(Err(anyhow::anyhow!("Close frame received without a reason")), inner_cosa).await;
                                 }
                             },
                             message => {
                                 error!("Unexpected message {:?}", message);
-                                e(Err(anyhow::anyhow!("Unexpected message {:?}", message))).await;
+                                e(Err(anyhow::anyhow!("Unexpected message {:?}", message)), inner_cosa).await;
                             }
                         }
                     },
                     Err(error) => {
                         let e = events.lock().await;
                         error!("Websocket read error: {:?}", error);
-                        e(Err(anyhow::anyhow!("Websocket read error: {:?}", error))).await;
+                        e(Err(anyhow::anyhow!("Websocket read error: {:?}", error)), inner_cosa).await;
                         res = Err(anyhow::anyhow!("Websocket read error: {:?}", error));
                     }
                 }

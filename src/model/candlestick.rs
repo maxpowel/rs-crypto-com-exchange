@@ -3,6 +3,7 @@ use serde_aux::prelude::deserialize_number_from_string;
 use chrono::serde::ts_milliseconds;
 use chrono::DateTime;
 use chrono::Utc;
+use std::fmt;
 
 // Main container of a candlestick
 #[derive(Deserialize, Debug)]
@@ -64,6 +65,44 @@ pub struct Candlestick {
     /// When the candlestick starts
     #[serde(rename = "t", with = "ts_milliseconds")]
     pub start_time: DateTime<Utc>
+}
+
+pub enum TimeFrame {
+    OneMinute,
+    FiveMinutes,
+    FiteenMinutes,
+    ThirtyMinutes,
+    OneHour,
+    FourHours,
+    SixHours,
+    TwelveHours,
+    OneDay,
+    OneWeek,
+    TwoWeeks,
+    OneMonth
+}
+
+impl fmt::Display for TimeFrame {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            TimeFrame::OneMinute => write!(f, "1m"),
+            TimeFrame::FiveMinutes => write!(f, "5m"),
+            TimeFrame::FiteenMinutes => write!(f, "15m"),
+            TimeFrame::ThirtyMinutes => write!(f, "30"),
+            TimeFrame::OneHour => write!(f, "1h"),
+            TimeFrame::FourHours => write!(f, "4h"),
+            TimeFrame::SixHours => write!(f, "6h"),
+            TimeFrame::TwelveHours => write!(f, "12h"),
+            TimeFrame::OneDay => write!(f, "1D"),
+            TimeFrame::OneWeek => write!(f, "7D"),
+            TimeFrame::TwoWeeks => write!(f, "14D"),
+            TimeFrame::OneMonth => write!(f, "1M"),
+        }
+    }
+}
+
+pub fn candlestick(time_frame: TimeFrame, instrument_name: &str) -> String {
+    format!("candlestick.{time_frame}.{instrument_name}")
 }
 
 #[cfg(test)]

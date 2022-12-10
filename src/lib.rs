@@ -1,10 +1,11 @@
 mod model;
-mod transport;
+mod client;
 mod message;
 mod subscription;
 
-pub use model::{Book, BookResult, CandlestickResult, Candlestick, TickerResult, Ticker, Trade, TradeResult, Balance, BalanceResult};
-pub use transport::{CryptoTransport};
+pub use model::{Book, BookResult, CandlestickResult, Candlestick, TickerResult, Ticker, Trade, TradeResult, Balance, BalanceResult, candlestick, TimeFrame};
+pub use client::{CryptoClient};
+pub use message::SubscribeResult;
 
 #[cfg(test)]
 mod tests {
