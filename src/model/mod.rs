@@ -7,5 +7,5 @@ mod balance;
 pub use book::{BookResult, Book};
 pub use candlestick::{CandlestickResult, Candlestick, candlestick, TimeFrame};
 pub use ticker::{TickerResult, Ticker};
-pub use trade::{TradeResult, Trade};
+pub use trade::{TradeResult, Trade, trade};
 pub use balance::{BalanceResult, Balance};
