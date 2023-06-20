@@ -1,6 +1,6 @@
 [package]
 name = "crypto-com-exchange"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "Websocket library for crypto com exchange https://exchange-docs.crypto.com/spot/index.html#websocket-root-endpoints"
