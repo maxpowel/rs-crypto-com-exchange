@@ -140,6 +140,11 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                 
                                                 
                                             },
+                                            message::Message::UnsubscriptionResponse{id, code} => {
+                                                println!("TODO: unsubscription: {id} {code}")
+                                                
+                                                
+                                            },
                                             message::Message::AuthResponse{id, code} => {
                                                 println!("TODO: Notify auth response: {id} {code}")
                                             }
@@ -191,6 +196,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
     }
 
     pub async fn subscribe(&mut self, channels: Vec<String>) ->Result<()> {
+        debug!("Subscribing to {:?} channels", channels.len());
         if let Some(writer) = self.writer.as_mut() {
             let message = subscription::Request::Subscribe{
                 id: self.message_id,
@@ -202,6 +208,28 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
             writer.lock().await.send(Message::text(text)).await?;
             // Increase message_id only if the message was actually sent
             self.message_id += 1;
+            debug!("New message id {:?}", self.message_id);
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Not connected"))
+        }
+        
+    }
+
+    pub async fn unsubscribe(&mut self, channels: Vec<String>) ->Result<()> {
+        debug!("Unsubscribing to {:?} channels", channels.len());
+        if let Some(writer) = self.writer.as_mut() {
+            let message = subscription::Request::Unsubscribe{
+                id: self.message_id,
+                params: subscription::UnsubscribeParams{channels},
+                nonce: nonce()
+            };
+
+            let text = serde_json::to_string(&message)?;
+            writer.lock().await.send(Message::text(text)).await?;
+            // Increase message_id only if the message was actually sent
+            self.message_id += 1;
+            debug!("New message id {:?}", self.message_id);
             Ok(())
         } else {
             Err(anyhow::anyhow!("Not connected"))

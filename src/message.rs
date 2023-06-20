@@ -29,6 +29,13 @@ pub enum Message {
         code: u64,
         channel: Option<String>,
         message: Option<String>
+    },
+
+    /// A response from an unsubscription request
+    #[serde(rename = "unsubscribe")]
+    UnsubscriptionResponse{
+        id: i32,
+        code: u64
     }
 }
 

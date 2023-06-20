@@ -1,5 +1,6 @@
 use serde::{Deserialize};
 use serde_aux::prelude::deserialize_number_from_string;
+use chrono::{DateTime, Utc, serde::ts_milliseconds};
 
 // Main container of a trade
 #[derive(Deserialize, Debug)]
@@ -19,11 +20,11 @@ pub struct TradeResult {
 pub struct Trade {
     /// Price
     #[serde(rename = "p", deserialize_with = "deserialize_number_from_string")]
-    pub price: f32,
+    pub price: f64,
 
     /// Quantity
     #[serde(rename = "q", deserialize_with = "deserialize_number_from_string")]
-    pub quantity: f32,
+    pub quantity: f64,
 
     /// TODO use an enum for that
     /// Side, buy or sell (exactly these strings)
@@ -35,8 +36,8 @@ pub struct Trade {
     pub id: u64,
 
     /// Time
-    #[serde(rename = "t")]
-    pub time: u64
+    #[serde(rename = "t", with = "ts_milliseconds")]
+    pub update_time: DateTime<Utc>,
 }
 
 pub fn trade(instrument_name: &str) -> String {

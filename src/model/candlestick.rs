@@ -1,8 +1,6 @@
 use serde::{Deserialize};
 use serde_aux::prelude::deserialize_number_from_string;
-use chrono::serde::ts_milliseconds;
-use chrono::DateTime;
-use chrono::Utc;
+use chrono::{DateTime, Utc, serde::ts_milliseconds};
 use std::fmt;
 
 // Main container of a candlestick
