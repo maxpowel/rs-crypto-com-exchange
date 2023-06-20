@@ -1,9 +1,11 @@
 mod model;
-mod websocket;
+mod client;
+mod message;
+mod subscription;
 
-
-pub use model::{Book, BookResult, CandlestickResult, Candlestick, TickerResult, Ticker, Trade, TradeResult, UserSubscribeResponse, UserSubscribeResult, MarketSubscribeResult, Request, SubscribeParams, Balance, BalanceResult};
-pub use websocket::{MarketClient, UserClient};
+pub use model::{Book, BookResult, CandlestickResult, Candlestick, TickerResult, Ticker, Trade, TradeResult, Balance, BalanceResult, candlestick, TimeFrame, trade};
+pub use client::{CryptoClient};
+pub use message::SubscribeResult;
 
 #[cfg(test)]
 mod tests {

@@ -7,6 +7,13 @@ pub struct SubscribeParams {
     pub channels: Vec<String>
 }
 
+/// Parameters of an unsubscription
+#[derive(Serialize, Debug)]
+pub struct UnsubscribeParams {
+    /// The channels to unsubscribe, for example 'user.order.ETH_CRO' 
+    pub channels: Vec<String>
+}
+
 /// A request done from the client to the exchange
 #[derive(Serialize, Debug)]
 #[serde(tag = "method")]
@@ -29,6 +36,17 @@ pub enum Request {
         nonce: u128,
     },
 
+    /// Unsubscription request
+    #[serde(rename = "unsubscribe")]
+    Unsubscribe {
+        /// The exchange will response using this id, ideally it is unique
+        id: u64,
+        /// The actual subscription parameters
+        params: UnsubscribeParams,
+        /// Millis since epoch
+        nonce: u128,
+    },
+
     /// Authentication request
     #[serde(rename = "public/auth")]
     Auth {
@@ -40,19 +58,6 @@ pub enum Request {
         sig: String,
         /// Millis since epoc
         nonce: u128
-    },
-
-    /// Subscription request
-    #[serde(rename = "subscribe")]
-    SignedSubscribe {
-        /// The exchange will response using this id, ideally it is unique
-        id: u64,
-        /// The actual subscription parameters
-        params: SubscribeParams,
-        /// Millis since epoch
-        nonce: u128,
-
-        sig: String,
     },
     
 }
