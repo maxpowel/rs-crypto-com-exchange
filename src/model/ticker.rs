@@ -13,6 +13,10 @@ pub struct TickerResult {
     pub data: Vec<Ticker>
 }
 
+pub fn ticker(instrument_name: &str) -> String {
+  format!("ticker.{instrument_name}")
+}
+
 /// Ticker element received from subscription
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Ticker {

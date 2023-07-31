@@ -131,6 +131,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                 debug!("heartbeat sent");
                                             },
                                             message::Message::SubscriptionResponse{result, id, code, channel, message} => {
+                                                println!("COSA {:?}", result);
                                                 if let Some(result) = result {
                                                     debug!("Message received: {:?}", result);
                                                     e(Ok(result), inner_cosa).await;
