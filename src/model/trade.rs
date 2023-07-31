@@ -26,10 +26,9 @@ pub struct Trade {
     #[serde(rename = "q", deserialize_with = "deserialize_number_from_string")]
     pub quantity: f64,
 
-    /// TODO use an enum for that
     /// Side, buy or sell (exactly these strings)
-    #[serde(rename = "s", deserialize_with = "deserialize_number_from_string")]
-    pub side: String,
+    #[serde(rename = "s")]
+    pub side: Side,
 
     /// Transaction id
     #[serde(rename = "d", deserialize_with = "deserialize_number_from_string")]
@@ -37,7 +36,24 @@ pub struct Trade {
 
     /// Time
     #[serde(rename = "t", with = "ts_milliseconds")]
-    pub update_time: DateTime<Utc>,
+    pub time: DateTime<Utc>,
+}
+
+#[derive(Serialize,Deserialize, Debug)]
+pub enum Side {
+  #[serde(rename = "BUY")]
+  Buy,
+  #[serde(rename = "SELL")]
+  Sell
+}
+
+impl std::fmt::Display for Side {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+          Side::Buy => write!(f, "BUY"),
+          Side::Sell => write!(f, "SELL"),
+        }
+    }
 }
 
 pub fn trade(instrument_name: &str) -> String {

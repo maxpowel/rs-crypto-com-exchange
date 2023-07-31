@@ -1,4 +1,4 @@
-use serde::{Deserialize};
+use serde::Deserialize;
 use crate::model::{TradeResult, CandlestickResult, TickerResult, BookResult, BalanceResult};
 
 ///All kind of incoming market messages that the client receive and understand

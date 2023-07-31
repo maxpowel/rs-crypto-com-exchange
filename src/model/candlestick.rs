@@ -12,7 +12,6 @@ pub struct CandlestickResult {
     /// Subscription name used to subscribe this event
     pub subscription: String,
 
-    /// TODO use an enum for that
     /// The time interval affected by this candlestick. The options are
     /// 1m : one minute
     /// 5m : five minutes
@@ -26,7 +25,7 @@ pub struct CandlestickResult {
     /// 7D : one week
     /// 14D : two weeks
     /// 1M : one month
-    pub interval: String,
+    pub interval: TimeFrame,
 
     /// Actual candlestick information
     pub data: Vec<Candlestick>
@@ -65,6 +64,7 @@ pub struct Candlestick {
     pub start_time: DateTime<Utc>
 }
 
+#[derive(Serialize,Deserialize, Debug)]
 pub enum TimeFrame {
     OneMinute,
     FiveMinutes,

@@ -1,5 +1,4 @@
-use std::{str::FromStr, fmt::Display};
-
+use chrono::{DateTime, Utc, serde::ts_milliseconds};
 use serde::{Serialize, Deserialize, Deserializer, Serializer,ser::SerializeTuple, de::{Visitor, SeqAccess}};
 
 // Main container of a book
@@ -85,8 +84,8 @@ pub struct Book {
     pub asks: Vec<Offer>,
 
     /// The operation time
-    #[serde(rename = "t")]
-    pub time: u64
+    #[serde(rename = "t", with = "ts_milliseconds")]
+    pub time: DateTime<Utc>,
 }
 
 pub fn book(instrument_name: &str, depth: i32) -> String {

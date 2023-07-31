@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc, serde::ts_milliseconds};
 use serde::{Serialize, Deserialize};
 
 // Main container of a ticker
@@ -49,8 +50,8 @@ pub struct Ticker {
     pub change: f32,
 
     /// update time
-    #[serde(rename = "t")]
-    pub time: u64
+    #[serde(rename = "t", with = "ts_milliseconds")]
+    pub time: DateTime<Utc>,
 }
 
 #[cfg(test)]
