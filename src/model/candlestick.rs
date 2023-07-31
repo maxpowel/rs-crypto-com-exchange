@@ -1,10 +1,10 @@
-use serde::{Deserialize};
+use serde::{Serialize, Deserialize};
 use serde_aux::prelude::deserialize_number_from_string;
 use chrono::{DateTime, Utc, serde::ts_milliseconds};
 use std::fmt;
 
 // Main container of a candlestick
-#[derive(Deserialize, Debug)]
+#[derive(Serialize,Deserialize, Debug)]
 pub struct CandlestickResult {
     /// Just the instrument name
     pub instrument_name: String,
@@ -33,7 +33,7 @@ pub struct CandlestickResult {
 }
 
 /// Candlestick received from subscription
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Candlestick {
 
     /// Open price

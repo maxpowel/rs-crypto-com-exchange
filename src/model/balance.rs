@@ -1,7 +1,7 @@
-use serde::{Deserialize};
+use serde::{Serialize, Deserialize};
 
 // Main container of the user balance
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BalanceResult {
     /// Subscription name used to subscribe this event
     pub subscription: String,
@@ -11,7 +11,7 @@ pub struct BalanceResult {
 }
 
 /// Balance element received from subscription
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Balance {
     /// Currency name
     pub currency: String,

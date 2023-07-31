@@ -1,7 +1,7 @@
-use serde::{Deserialize};
+use serde::{Serialize, Deserialize};
 
 // Main container of a book
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct BookResult {
     /// Just the instrument name
     pub instrument_name: String,
@@ -18,7 +18,7 @@ pub struct BookResult {
 
 /// TODO maybe create a better structure for the bids and asks. Maybe a struct instead of tuple
 /// Book received from subscription
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Book {
     /// The value is: (price, quantity, number of Orders)
     pub bids: Vec<(f32, f32, u64)>,

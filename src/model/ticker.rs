@@ -1,7 +1,7 @@
-use serde::{Deserialize};
+use serde::{Serialize, Deserialize};
 
 // Main container of a ticker
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TickerResult {
     /// Just the instrument name
     pub instrument_name: String,
@@ -14,7 +14,7 @@ pub struct TickerResult {
 }
 
 /// Ticker element received from subscription
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Ticker {
     /// Price of the 24h highest trade
     #[serde(rename = "h")]
