@@ -66,17 +66,40 @@ pub struct Candlestick {
 
 #[derive(Serialize,Deserialize, Debug)]
 pub enum TimeFrame {
+    #[serde(rename = "1m")]
     OneMinute,
+
+    #[serde(rename = "5m")]
     FiveMinutes,
+
+    #[serde(rename = "15m")]
     FiteenMinutes,
+
+    #[serde(rename = "30m")]
     ThirtyMinutes,
+
+    #[serde(rename = "1h")]
     OneHour,
+
+    #[serde(rename = "4h")]
     FourHours,
+
+    #[serde(rename = "6h")]
     SixHours,
+
+    #[serde(rename = "12h")]
     TwelveHours,
+
+    #[serde(rename = "1D")]
     OneDay,
+    
+    #[serde(rename = "7D")]
     OneWeek,
+
+    #[serde(rename = "14D")]
     TwoWeeks,
+
+    #[serde(rename = "1M")]
     OneMonth
 }
 
@@ -86,7 +109,7 @@ impl fmt::Display for TimeFrame {
             TimeFrame::OneMinute => write!(f, "1m"),
             TimeFrame::FiveMinutes => write!(f, "5m"),
             TimeFrame::FiteenMinutes => write!(f, "15m"),
-            TimeFrame::ThirtyMinutes => write!(f, "30"),
+            TimeFrame::ThirtyMinutes => write!(f, "30m"),
             TimeFrame::OneHour => write!(f, "1h"),
             TimeFrame::FourHours => write!(f, "4h"),
             TimeFrame::SixHours => write!(f, "6h"),
