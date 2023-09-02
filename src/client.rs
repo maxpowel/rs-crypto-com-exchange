@@ -127,7 +127,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                 debug!("heartbeat received");
                                                 let message = subscription::Request::HeartbeatResponse{id};
                                                 let text = serde_json::to_string(&message).unwrap();
-                                                inner_writer.lock().await.send(Message::text(text)).await.unwrap();
+                                                //inner_writer.lock().await.send(Message::text(text)).await.unwrap();
                                                 debug!("heartbeat sent");
                                             },
                                             message::Message::SubscriptionResponse{result, id, code, channel, message} => {
@@ -167,10 +167,13 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                 if let Some(frame) = frame {
                                     debug!("Close reason: {:?}", frame.reason);
                                     e(Err(anyhow::anyhow!("Close reason: {:?}", frame.reason)), inner_cosa).await;
+                                    res = Err(anyhow::anyhow!("Close reason: {:?}", frame.reason))
                                 } else {
                                     debug!("Close frame received without a reason");
                                     e(Err(anyhow::anyhow!("Close frame received without a reason")), inner_cosa).await;
+                                    res = Err(anyhow::anyhow!("Close frame received without a reason"))
                                 }
+                                return res
                             },
                             message => {
                                 error!("Unexpected message {:?}", message);
