@@ -109,10 +109,8 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
             let top_inner_cosa = cosa.clone();
             let mut res: Result<(), anyhow::Error> = Ok(());
             info!("Listener ready");
-            //let next = reader.next().await.unwrap();
             while let Some(next) = read.next().await {
                 let inner_cosa = top_inner_cosa.clone();
-            //read.for_each(|next| async {
                 match next {
                     Ok(message) => {
                         let e = events.lock().await;
@@ -127,7 +125,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                 debug!("heartbeat received");
                                                 let message = subscription::Request::HeartbeatResponse{id};
                                                 let text = serde_json::to_string(&message).unwrap();
-                                                //inner_writer.lock().await.send(Message::text(text)).await.unwrap();
+                                                inner_writer.lock().await.send(Message::text(text)).await.unwrap();
                                                 debug!("heartbeat sent");
                                             },
                                             message::Message::SubscriptionResponse{result, id, code, channel, message} => {
@@ -189,7 +187,6 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                     }
                 }
             }
-            //}).await;
             res
         });
         
