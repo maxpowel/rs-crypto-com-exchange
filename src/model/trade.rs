@@ -39,7 +39,7 @@ pub struct Trade {
     pub time: DateTime<Utc>,
 }
 
-#[derive(Serialize,Deserialize, Debug)]
+#[derive(Serialize,Deserialize, Debug, PartialEq)]
 pub enum Side {
   #[serde(rename = "BUY")]
   Buy,
