@@ -67,6 +67,15 @@ pub enum SubscribeResult {
     /// Trade subscription result
     #[serde(rename = "user.balance")]
     BalanceResult(BalanceResult),
+
+
+    AuthResult{
+        success: bool
+    },
+
+    UnsubscriptionResult{
+        success: bool
+    },
 }
 
 

@@ -11,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use sha2::Sha256;
 use hmac::{Hmac, Mac};
 
-use crate::message;
+use crate::{message, SubscribeResult};
 use tokio::sync::Mutex;
 use std::sync::Arc;
 
@@ -140,17 +140,20 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                 
                                             },
                                             message::Message::UnsubscriptionResponse{id, code} => {
-                                                println!("TODO: unsubscription: {id} {code}")
-                                                
+                                                debug!("Unsubscription: {id} {code}");
+                                                e(Ok(SubscribeResult::UnsubscriptionResult{success: code == 0}), inner_cosa).await;
                                                 
                                             },
                                             message::Message::AuthResponse{id, code} => {
-                                                println!("TODO: Notify auth response: {id} {code}")
+                                                debug!("Notify auth response: {id} {code}");
+                                                e(Ok(SubscribeResult::AuthResult{success: code == 0}), inner_cosa).await;
                                             }
                                         }
                                     }
                                     Err(err) => {
-                                        error!("Error when parsing JSON:\n{}\n{}", text, err);
+                                        let msg = format!("Error when parsing JSON:\n{}\n{}", text, err);
+                                        error!("{}", msg);
+                                        e(Err(anyhow::anyhow!("{}", msg)), inner_cosa).await;
                                         
                                     }
                                 }
