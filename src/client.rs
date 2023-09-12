@@ -136,8 +136,6 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                     println!("{:?}",text);
                                                     e(Err(anyhow::anyhow!("Error \"{}\" ({code}) when subscribing to {} (msgid:{id})", message.unwrap_or("unknown".into()), channel.unwrap_or("unknown".into()))), inner_cosa).await;
                                                 }
-                                                
-                                                
                                             },
                                             message::Message::UnsubscriptionResponse{id, code} => {
                                                 debug!("Unsubscription: {id} {code}");
@@ -154,7 +152,6 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                         let msg = format!("Error when parsing JSON:\n{}\n{}", text, err);
                                         error!("{}", msg);
                                         e(Err(anyhow::anyhow!("{}", msg)), inner_cosa).await;
-                                        
                                     }
                                 }
                             },
