@@ -1,29 +1,79 @@
 use futures::future::Future;
 use futures::stream::SplitSink;
 use futures::{StreamExt, SinkExt};
-use anyhow::Result;
+use thiserror::Error;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, WebSocketStream, MaybeTlsStream};
-use tokio_tungstenite::tungstenite::protocol::Message;
+use tokio_tungstenite::tungstenite::protocol::{CloseFrame, Message};
 use log::{error, debug, info};
 use tokio::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sha2::Sha256;
 use hmac::{Hmac, Mac};
-
-use crate::{message, SubscribeResult};
 use tokio::sync::Mutex;
 use std::sync::Arc;
 
+use crate::{message, SubscribeResult};
 use crate::subscription;
 
 type HmacSha256 = Hmac<Sha256>;
 
+#[derive(Error, Debug)]
+pub enum CryptoError {
+    #[error("Cannot join to a task")]
+    JoinError(#[from] tokio::task::JoinError),
+
+
+    #[error("Tungstenite error")]
+    TungsteniteError(#[from] tokio_tungstenite::tungstenite::Error),
+
+    #[error("Tungstenite error")]
+    TungsteniteErrorString(String),
+
+
+    #[error("Error \"{}\" ({code}) when subscribing to {} (msgid:{id})", message.as_ref().unwrap_or(&"unknown".to_owned()), channel.as_ref().unwrap_or(&"unknown".to_owned()))]
+    SubscriptionError {
+        id: i64,
+        code: u64,
+        message: Option<String>,
+        channel: Option<String>
+    },
+    
+    #[error("Serde error")]
+    SerdeError(#[from] serde_json::error::Error),
+
+    #[error("Server closed de communication")]
+    CloseError {
+        frame: Option<CloseFrame<'static>>
+    },
+
+    #[error("Unexpected message")]
+    UnexpectedMessageError {
+        message: Message
+    },
+    
+
+    #[error("Not connected")]
+    NotConnectedError
+
+    //#[error("Cannot join to a task")]
+    //JoinError2(#[from] futures::io::Error),
+    /*#[error("the data for key `{0}` is not available")]
+    Redaction(String),
+    #[error("invalid header (expected {expected:?}, found {found:?})")]
+    InvalidHeader {
+        expected: String,
+        found: String,
+    },
+    #[error("unknown data store error")]
+    Unknown,*/
+}
+
 
 pub struct CryptoClient<Fut: Future<Output = ()> + Send + Sync + 'static, T> {
     //events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult>, std::sync::Arc<flume::Sender<T>>)-> Fut + Send + Sync>>,
-    events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult>, T)-> Fut + Send + Sync>>,
-    reader_join: Option<JoinHandle<Result<()>>>,
+    events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult, CryptoError>, T)-> Fut + Send + Sync>>,
+    reader_join: Option<JoinHandle<Result<(), CryptoError>>>,
     writer: Option<Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>>,
     message_id: u64,
     //sender: std::sync::Arc<flume::Sender<T>>
@@ -39,7 +89,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
    where T: Clone {
 
     //pub fn new(f: impl Fn(Result<message::SubscribeResult>, std::sync::Arc<flume::Sender<T>>)->Fut + Send + Sync + 'static, sender: std::sync::Arc<flume::Sender<T>>) -> CryptoTransport<Fut, T> {
-    pub fn new(f: impl Fn(Result<message::SubscribeResult>, T)->Fut + Send + Sync + 'static, container: T) -> CryptoClient<Fut, T> {
+    pub fn new(f: impl Fn(Result<message::SubscribeResult, CryptoError>, T)->Fut + Send + Sync + 'static, container: T) -> CryptoClient<Fut, T> {
         CryptoClient {
             events: Arc::new(Mutex::new(f)),
             reader_join: None,
@@ -50,7 +100,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
 
     }
 
-    pub async fn wait(&mut self) -> Result<()> {
+    pub async fn wait(&mut self) -> Result<(), CryptoError> {
         if let Some(join) = self.reader_join.as_mut() {
             if join.is_finished() {
                 Ok(())
@@ -64,7 +114,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
         
     }
 
-    pub async fn disconnect(&mut self) -> Result<()> {
+    pub async fn disconnect(&mut self) -> Result<(), CryptoError> {
         info!("Disconnecting");
         if let Some(writer) = self.writer.as_mut() {
             debug!("Closing connection");
@@ -82,17 +132,17 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
         Ok(())
     }
 
-    pub async fn connect_market(&mut self) -> Result<()> {
+    pub async fn connect_market(&mut self) -> Result<(), CryptoError> {
         self.connect("wss://stream.crypto.com/v2/market").await?;
         Ok(())
     }
 
-    pub async fn connect_user(&mut self) -> Result<()> {
+    pub async fn connect_user(&mut self) -> Result<(), CryptoError> {
         self.connect("wss://stream.crypto.com/v2/user").await?;
         Ok(())
     }
 
-    pub async fn connect(&mut self, uri: &str) -> Result<()> {
+    pub async fn connect(&mut self, uri: &str) -> Result<(), CryptoError> {
         info!("Connecting");
         let connection = connect_async(uri).await?;
         let (ws_stream, _) = connection;
@@ -107,7 +157,8 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
         let cosa = self.container.clone();
         let join = tokio::spawn(async move {
             let top_inner_cosa = cosa.clone();
-            let mut res: Result<(), anyhow::Error> = Ok(());
+            let mut join_result: Result<(), CryptoError> = Ok(());
+            
             info!("Listener ready");
             while let Some(next) = read.next().await {
                 let inner_cosa = top_inner_cosa.clone();
@@ -133,8 +184,15 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                     debug!("Message received: {:?}", result);
                                                     e(Ok(result), inner_cosa).await;
                                                 } else if code != 0 {
-                                                    println!("{:?}",text);
-                                                    e(Err(anyhow::anyhow!("Error \"{}\" ({code}) when subscribing to {} (msgid:{id})", message.unwrap_or("unknown".into()), channel.unwrap_or("unknown".into()))), inner_cosa).await;
+                                                    
+                                                    e(Err(CryptoError::SubscriptionError {
+                                                        id,
+                                                        code,
+                                                        message,
+                                                        channel
+                                                    }), inner_cosa);
+                                                    //e(Err(anyhow::anyhow!("Error \"{}\" ({code}) when subscribing to {} (msgid:{id})", message.unwrap_or("unknown".into()), channel.unwrap_or("unknown".into()))), inner_cosa).await;
+                                                    //
                                                 }
                                             },
                                             message::Message::UnsubscriptionResponse{id, code} => {
@@ -149,9 +207,8 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                         }
                                     }
                                     Err(err) => {
-                                        let msg = format!("Error when parsing JSON:\n{}\n{}", text, err);
-                                        error!("{}", msg);
-                                        e(Err(anyhow::anyhow!("{}", msg)), inner_cosa).await;
+                                        error!("Error when parsing JSON:\n{}\n{}", text, err);
+                                        e(Err(CryptoError::SerdeError(err)), inner_cosa).await;
                                     }
                                 }
                             },
@@ -164,32 +221,24 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                 debug!("PONG RECEIVED {:?}", message);
                             },
                             Message::Close(frame) => {
-                                if let Some(frame) = frame {
-                                    debug!("Close reason: {:?}", frame.reason);
-                                    e(Err(anyhow::anyhow!("Close reason: {:?}", frame.reason)), inner_cosa).await;
-                                    res = Err(anyhow::anyhow!("Close reason: {:?}", frame.reason))
-                                } else {
-                                    debug!("Close frame received without a reason");
-                                    e(Err(anyhow::anyhow!("Close frame received without a reason")), inner_cosa).await;
-                                    res = Err(anyhow::anyhow!("Close frame received without a reason"))
-                                }
-                                return res
+                                e(Err(CryptoError::CloseError { frame: frame.clone() }), inner_cosa).await;
+                                return Err(CryptoError::CloseError { frame });
                             },
                             message => {
                                 error!("Unexpected message {:?}", message);
-                                e(Err(anyhow::anyhow!("Unexpected message {:?}", message)), inner_cosa).await;
+                                e(Err(CryptoError::UnexpectedMessageError{message}), inner_cosa).await;
                             }
                         }
                     },
                     Err(error) => {
                         let e = events.lock().await;
-                        error!("Websocket read error: {:?}", error);
-                        e(Err(anyhow::anyhow!("Websocket read error: {:?}", error)), inner_cosa).await;
-                        res = Err(anyhow::anyhow!("Websocket read error: {:?}", error));
+                        error!("Websocket read error: {:?}", error);   
+                        e(Err(CryptoError::TungsteniteErrorString(error.to_string())), inner_cosa).await;
+                        join_result = Err(CryptoError::TungsteniteError(error));
                     }
                 }
             }
-            res
+            join_result
         });
         
         self.reader_join = Some(join);
@@ -198,7 +247,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
         Ok(())
     }
 
-    pub async fn subscribe(&mut self, channels: Vec<String>) ->Result<()> {
+    pub async fn subscribe(&mut self, channels: Vec<String>) ->Result<(), CryptoError> {
         debug!("Subscribing to {:?} channels", channels.len());
         if let Some(writer) = self.writer.as_mut() {
             let message = subscription::Request::Subscribe{
@@ -214,12 +263,12 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
             debug!("New message id {:?}", self.message_id);
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Not connected"))
+            Err(CryptoError::NotConnectedError)
         }
         
     }
 
-    pub async fn unsubscribe(&mut self, channels: Vec<String>) ->Result<()> {
+    pub async fn unsubscribe(&mut self, channels: Vec<String>) ->Result<(), CryptoError> {
         debug!("Unsubscribing to {:?} channels", channels.len());
         if let Some(writer) = self.writer.as_mut() {
             let message = subscription::Request::Unsubscribe{
@@ -235,13 +284,13 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
             debug!("New message id {:?}", self.message_id);
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Not connected"))
+            Err(CryptoError::NotConnectedError)
         }
         
     }
 
 
-    pub async fn auth(&mut self, api_key: &str, api_secret: &str) ->Result<()> {
+    pub async fn auth(&mut self, api_key: &str, api_secret: &str) ->Result<(), CryptoError> {
         if let Some(writer) = self.writer.as_mut() {
             let n = nonce();
             let message_to_sig = vec!["public/auth".into(), self.message_id.to_string(), api_key.to_owned(), n.to_string()].concat();
@@ -263,7 +312,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
             self.message_id += 1;
             Ok(())
         } else {
-            Err(anyhow::anyhow!("Not connected"))
+            Err(CryptoError::NotConnectedError)
         }
 
         
