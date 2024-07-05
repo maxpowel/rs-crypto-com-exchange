@@ -1,6 +1,6 @@
 [package]
 name = "crypto-com-exchange"
-version = "1.0.8"
+version = "1.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "Websocket library for crypto com exchange https://exchange-docs.crypto.com/spot/index.html#websocket-root-endpoints"
@@ -17,7 +17,7 @@ categories = ["api-bindings", "asynchronous", "web-programming::websocket"]
 
 [dependencies]
 tokio = { version = "1.38.0", features = ["full"] }
-tokio-tungstenite = { version = "0.23.1", features = ["rustls-tls-native-roots"] }
+tokio-tungstenite = { version = "0.22.0", features = ["rustls-tls-native-roots"] }
 futures = "0.3.30"
 log = "0.4.22"
 serde = { version = "1.0.203", features = ["derive"] }
