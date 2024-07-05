@@ -4,7 +4,7 @@ mod message;
 mod subscription;
 
 pub use model::{Book, BookResult, CandlestickResult, Candlestick, TickerResult, Ticker, Trade, TradeResult, candlestick, TimeFrame, trade, ticker, book, Side, balance, BalanceResult, PositionBalance, Balance};
-pub use client::{CryptoClient};
+pub use client::{CryptoClient, CryptoError};
 pub use message::SubscribeResult;
 
 #[cfg(test)]

@@ -58,12 +58,14 @@ pub enum CryptoError {
 
 }
 
+type EventType<T, Fut> = Arc<Mutex<dyn Fn(Result<message::SubscribeResult, CryptoError>, T)-> Fut + Send + Sync>>;
+type WriterType = Option<Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>>;
 
 pub struct CryptoClient<Fut: Future<Output = ()> + Send + Sync + 'static, T> {
     //events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult>, std::sync::Arc<flume::Sender<T>>)-> Fut + Send + Sync>>,
-    events: Arc<Mutex<dyn Fn(Result<message::SubscribeResult, CryptoError>, T)-> Fut + Send + Sync>>,
+    events: EventType<T, Fut>,
     reader_join: Option<JoinHandle<Result<(), CryptoError>>>,
-    writer: Option<Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>>,
+    writer: WriterType,
     message_id: u64,
     //sender: std::sync::Arc<flume::Sender<T>>
     container: T
@@ -282,7 +284,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
     pub async fn auth(&mut self, api_key: &str, api_secret: &str) ->Result<(), CryptoError> {
         if let Some(writer) = self.writer.as_mut() {
             let n = nonce();
-            let message_to_sig = vec!["public/auth".into(), self.message_id.to_string(), api_key.to_owned(), n.to_string()].concat();
+            let message_to_sig = ["public/auth".into(), self.message_id.to_string(), api_key.to_owned(), n.to_string()].concat();
             let mut mac = HmacSha256::new_from_slice(api_secret.as_bytes()).unwrap();
             mac.update(message_to_sig.as_bytes());
             let result = mac.finalize();

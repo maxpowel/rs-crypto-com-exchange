@@ -133,5 +133,5 @@ pub struct PositionBalance {
 }
  
 pub fn balance() -> String {
-    format!("user.balance")
+    ("user.balance").to_string()
   }
