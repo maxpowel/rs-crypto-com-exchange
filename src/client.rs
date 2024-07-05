@@ -54,7 +54,11 @@ pub enum CryptoError {
     
 
     #[error("Not connected")]
-    NotConnectedError
+    NotConnectedError,
+
+    #[error("Invalid sha length")]
+    ShaInvalidLength(#[from] hmac::digest::InvalidLength),
+
 
 }
 
@@ -72,8 +76,10 @@ pub struct CryptoClient<Fut: Future<Output = ()> + Send + Sync + 'static, T> {
 }
 
 fn nonce() -> u128 {
-    let start = SystemTime::now();
-    start.duration_since(UNIX_EPOCH).unwrap().as_millis()
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(n) => n.as_millis(),
+        Err(_) => 0,
+    }
 }
 
 impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> CryptoClient<Fut, T> 
@@ -166,9 +172,22 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                             message::Message::HeartbeatRequest{id} => {                   
                                                 debug!("heartbeat received");
                                                 let message = subscription::Request::HeartbeatResponse{id};
-                                                let text = serde_json::to_string(&message).unwrap();
-                                                inner_writer.lock().await.send(Message::text(text)).await.unwrap();
-                                                debug!("heartbeat sent");
+                                                match serde_json::to_string(&message) {
+                                                    Ok(text) => {
+                                                        if let Err(error) = inner_writer.lock().await.send(Message::text(text)).await{
+                                                            error!("Cannot send heartbeat");
+                                                            e(Err(CryptoError::TungsteniteError(error)), inner_cosa);
+                                                        } else {
+                                                            debug!("heartbeat sent");
+                                                        }
+                                                    },
+                                                    Err(error) => {
+                                                        error!("Cannot serialize heartbeat");
+                                                        e(Err(CryptoError::SerdeError(error)), inner_cosa);
+                                                    }
+                                                }
+                                                
+                                                
                                             },
                                             message::Message::SubscriptionResponse{result, id, code, channel, message} => {
                                                 if let Some(result) = result {
@@ -182,8 +201,6 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                                         message,
                                                         channel
                                                     }), inner_cosa);
-                                                    //e(Err(anyhow::anyhow!("Error \"{}\" ({code}) when subscribing to {} (msgid:{id})", message.unwrap_or("unknown".into()), channel.unwrap_or("unknown".into()))), inner_cosa).await;
-                                                    //
                                                 }
                                             },
                                             message::Message::UnsubscriptionResponse{id, code} => {
@@ -205,8 +222,13 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                             },
                             Message::Ping(message) => {
                                 debug!("Ping received {:?}", message);
-                                inner_writer.lock().await.send(Message::Pong(message)).await.unwrap();
-                                debug!("Pong sent");
+                                if let Err(error) = inner_writer.lock().await.send(Message::Pong(message)).await {
+                                    error!("Cannot send pong");
+                                    e(Err(CryptoError::TungsteniteError(error)), inner_cosa).await;
+                                } else {
+                                    debug!("Pong sent");
+                                }
+                                
                             },
                             Message::Pong(message) => {
                                 debug!("PONG RECEIVED {:?}", message);
@@ -285,7 +307,7 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
         if let Some(writer) = self.writer.as_mut() {
             let n = nonce();
             let message_to_sig = ["public/auth".into(), self.message_id.to_string(), api_key.to_owned(), n.to_string()].concat();
-            let mut mac = HmacSha256::new_from_slice(api_secret.as_bytes()).unwrap();
+            let mut mac = HmacSha256::new_from_slice(api_secret.as_bytes())?;
             mac.update(message_to_sig.as_bytes());
             let result = mac.finalize();
             let f = result.into_bytes();
