@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc, serde::ts_milliseconds};
 use serde::{Serialize, Deserialize, Deserializer, Serializer,ser::SerializeTuple, de::{Visitor, SeqAccess}};
+use log::error;
 
 // Main container of a book
 #[derive(Serialize, Deserialize, Debug)]
@@ -56,9 +57,75 @@ impl<'de> Visitor<'de> for OfferVisitor {
     where
         M: SeqAccess<'de>
     {
-        let price: f64 = seq.next_element::<String>().unwrap().unwrap().parse().unwrap();
-        let quantity: f64 = seq.next_element::<String>().unwrap().unwrap().parse().unwrap();
-        let amount: i64 = seq.next_element::<String>().unwrap().unwrap().parse().unwrap();
+      let price: f64 = match seq.next_element::<String>() {
+        Ok(r) => {
+          if let Some(p) = r {
+            match p.parse() {
+              Ok(parsed) => {
+                parsed
+              },
+              Err(error) => {
+                error!("Cannot parse price {:?} as float: {:?}", p, error);
+                0.0
+              }
+            }
+          } else {
+            error!("Missing price");
+            0.0
+          }
+        },
+        Err(error) => {
+          error!("Price parse error: {:?}", error);
+          0.0
+        }
+      };
+
+      let quantity: f64 = match seq.next_element::<String>() {
+        Ok(r) => {
+          if let Some(p) = r {
+            match p.parse() {
+              Ok(parsed) => {
+                parsed
+              },
+              Err(error) => {
+                error!("Cannot parse quantity {:?} as float: {:?}", p, error);
+                0.0
+              }
+            }
+          } else {
+            error!("Missing quantity");
+            0.0
+          }
+        },
+        Err(error) => {
+          error!("Quantity parse error: {:?}", error);
+          0.0
+        }
+      };
+
+      let amount: i64 = match seq.next_element::<String>() {
+        Ok(r) => {
+          if let Some(p) = r {
+            match p.parse() {
+              Ok(parsed) => {
+                parsed
+              },
+              Err(error) => {
+                error!("Cannot parse amount {:?} as integer: {:?}", p, error);
+                0
+              }
+            }
+          } else {
+            error!("Missing amount");
+            0
+          }
+        },
+        Err(error) => {
+          error!("Amount parse error: {:?}", error);
+          0
+        }
+      };
+        
         
         Ok(Offer{price, quantity, amount})
     }
