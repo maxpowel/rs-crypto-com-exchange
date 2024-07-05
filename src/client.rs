@@ -156,7 +156,9 @@ impl<Fut: Future<Output = ()>  + Send + Sync + 'static, T: Send + 'static> Crypt
                                 }
                             },
                             Message::Ping(message) => {
-                                debug!("PING RECEIVED {:?}", message);
+                                debug!("Ping received {:?}", message);
+                                inner_writer.lock().await.send(Message::Pong(message)).await.unwrap();
+                                debug!("Pong sent");
                             },
                             Message::Pong(message) => {
                                 debug!("PONG RECEIVED {:?}", message);

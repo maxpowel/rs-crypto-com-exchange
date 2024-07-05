@@ -25,7 +25,7 @@ pub enum Message {
     #[serde(rename = "subscribe")]
     SubscriptionResponse{
         result: Option<SubscribeResult>,
-        id: i32,
+        id: i64,
         code: u64,
         channel: Option<String>,
         message: Option<String>

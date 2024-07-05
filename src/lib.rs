@@ -3,7 +3,7 @@ mod client;
 mod message;
 mod subscription;
 
-pub use model::{Book, BookResult, CandlestickResult, Candlestick, TickerResult, Ticker, Trade, TradeResult, Balance, BalanceResult, candlestick, TimeFrame, trade, ticker, book, Side};
+pub use model::{Book, BookResult, CandlestickResult, Candlestick, TickerResult, Ticker, Trade, TradeResult, candlestick, TimeFrame, trade, ticker, book, Side, balance, BalanceResult, PositionBalance, Balance};
 pub use client::{CryptoClient};
 pub use message::SubscribeResult;
 
